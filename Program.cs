@@ -158,9 +158,13 @@ bool IsRoutingAck(ServiceEnvelope serviceEnvelope)
         if (serviceEnvelope.Packet == null)
             return false;
 
-        return serviceEnvelope.Packet.Portnum == (uint)PortNum.RoutingApp &&
-               serviceEnvelope.Packet.Encrypted.Length > 0 &&
-               serviceEnvelope.Packet.Encrypted.Length <= 10;
+        var nonce = new NonceGenerator(serviceEnvelope.Packet.From, serviceEnvelope.Packet.Id).Create();
+        var decrypted = PacketEncryption.TransformPacket(serviceEnvelope.Packet.Encrypted.ToByteArray(), nonce, Resources.DEFAULT_PSK);
+        var payload = Data.Parser.ParseFrom(decrypted);
+
+        return payload.Portnum == PortNum.RoutingApp &&
+               payload.Payload.Length > 0 &&
+               payload.Payload.Length <= 10;
     }
     catch
     {
