@@ -79,14 +79,14 @@ async Task HandleInterceptingPublish(InterceptingPublishEventArgs args)
             return;
         }
 
-        if (IsRoutingAck(args.ApplicationMessage.Payload))
+        var serviceEnvelope = ServiceEnvelope.Parser.ParseFrom(args.ApplicationMessage.Payload);
+
+        if (IsRoutingAck(serviceEnvelope))
         {
             Log.Logger.Debug("Confirmed routing ACK/NACK packet. Allowing through.");
             args.ProcessPublish = true;
             return;
         }
-
-        var serviceEnvelope = ServiceEnvelope.Parser.ParseFrom(args.ApplicationMessage.Payload);
 
         if (!IsValidServiceEnvelope(serviceEnvelope))
         {
@@ -151,14 +151,16 @@ bool IsValidServiceEnvelope(ServiceEnvelope serviceEnvelope)
             serviceEnvelope.Packet.Decoded != null);
 }
 
-bool IsRoutingAck(ReadOnlyMemory<byte> payload)
+bool IsRoutingAck(ServiceEnvelope serviceEnvelope)
 {
     try
     {
-        var packet = MeshPacket.Parser.ParseFrom(payload.ToArray());
-        return packet.Portnum == (uint)PortNum.RoutingApp && 
-               packet.Payload.Length > 0 &&
-               packet.Payload.Length <= 10;
+        if (serviceEnvelope.Packet == null)
+            return false;
+
+        return serviceEnvelope.Packet.Portnum == (uint)PortNum.RoutingApp &&
+               serviceEnvelope.Packet.Encrypted.Length > 0 &&
+               serviceEnvelope.Packet.Encrypted.Length <= 10;
     }
     catch
     {
