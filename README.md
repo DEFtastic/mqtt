@@ -1,6 +1,8 @@
-# Meshtastic MQTT Broker Boilerplate
+# DEFtastic Meshtastic-Aware MQTT Broker
 
-This project provides an MQTT broker boilerplate specifically designed for Meshtastic mesh network moderation. It handles encrypted mesh packets, validates messages, and can be configured to run with SSL.
+This project is a fork of [Ben's Meshtastic MQTT Boilerplate](https://github.com/meshtastic/mqtt), customized for use by the [DEFtastic](https://github.com/DEFtastic) team at DEF CON.
+
+It provides an MQTT broker specifically designed for Meshtastic mesh network moderation. It handles encrypted mesh packets, validates messages, and can be configured to run with SSL.
 
 ## Features
 
@@ -11,72 +13,77 @@ This project provides an MQTT broker boilerplate specifically designed for Mesht
 - SSL support for secure MQTT connections
 - Built using C# / .NET 9.0 with [MQTTnet](https://github.com/dotnet/MQTTnet)
 - Multi-platform support
-- Can be easily be packaged to run as a [portable standalone binary](https://learn.microsoft.com/en-us/dotnet/core/deploying/single-file/overview?tabs=cli)
+- Easily packaged as a [portable standalone binary](https://learn.microsoft.com/en-us/dotnet/core/deploying/single-file/overview?tabs=cli)
 - Configurable logging with [Serilog](https://serilog.net/)
+- **Dockerized** with automated builds via GitHub Actions
+- **Published automatically** to [Docker Hub](https://hub.docker.com/r/defcontastic/deftastic)
 
-## Docker Setup
+---
 
-### Prerequisites
+## Quick Start
 
-- Docker installed on your system
-- Certificate file (if using SSL mode)
-
-### Docker Installation
-
-1. Clone the repository:
-   ```bash
-   git clone https://github.com/meshtastic/mqtt
-   cd mqtt
-   ```
-
-2. Build the Docker image:
-   ```bash
-   docker build -t meshtastic-mqtt-broker .
-   ```
-
-#### SSL Mode (Port 8883)
-
-To run with SSL enabled:
-
-1. Place your certificate file (`certificate.pfx`) in the project directory. (see [MQTTnet Server Wiki](https://github.com/dotnet/MQTTnet/wiki/Server))
-2. Run the container with the SSL environment variable:
+### Docker (manual)
 
 ```bash
-docker run -p 8883:8883 -v $(pwd)/certificate.pfx:/app/certificate.pfx meshtastic-mqtt-broker
+docker pull defcontastic/deftastic:latest
+docker run --rm -p 8883:8883 defcontastic/deftastic:latest
 ```
 
-### Docker Compose Example
+You must mount a valid `certificate.pfx` if SSL is required.
+
+### Docker Compose (recommended)
 
 ```yaml
-version: '3'
+version: "3"
 services:
-  mqtt-broker:
-    build: .
+  meshtastic-mqtt-broker:
+    image: defcontastic/deftastic:latest
+    container_name: meshtastic-mqtt
     ports:
       - "8883:8883"
-
     volumes:
       - ./certificate.pfx:/app/certificate.pfx
     restart: unless-stopped
 ```
 
-## Configuration Options
+```bash
+docker-compose up -d
+```
 
-- **Certificate**: Mount your PFX certificate file to `/app/certificate.pfx` in the container or preferably modify it in the parent folder after git cloning.
-- **Ports**: The application uses  8883 for SSL MQTT (default).
+---
 
-## Ideas for MQTT mesh moderation
+## Configuration
 
-- Rate-limiting a packet we've heard before
-- Rate-limiting packets per node
-- "Zero hopping" certain packets
-- Blocking unknown topics or undecryptable packets (from unknown channels)
-- Blocking or rate-limiting certain portnums
-- Fail2ban style connection moderation
-- Banning from known bad actors list
+- **Certificate:** Mount your `.pfx` file to `/app/certificate.pfx` inside the container.
+- **Ports:** Broker listens on port 8883 (SSL/TLS).
+
+---
+
+## Ideas for Future Mesh Moderation
+
+- Rate-limiting duplicate packets
+- Per-node packet rate limiting
+- "Zero-hopping" specific packet types
+- Blocking unknown topics or undecryptable packets
+- Blocking or limiting certain portnums
+- Fail2ban-style IP banning
+- Node ID blacklist/whitelist enforcement
+
+---
 
 ## Troubleshooting
 
-- Ensure proper network access to the Docker container
-- Check that certificates are correctly formatted
-- Review logs using `docker logs [container-id]`
+- Confirm Docker daemon is running.
+- Ensure correct certificate formatting (`.pfx`).
+- Check container logs with:
+
+```bash
+docker logs [container-id]
+```
+
+---
+
+## Repo Links
+
+- GitHub: [DEFtastic/mqtt](https://github.com/DEFtastic/mqtt)
+- Docker Hub: [defcontastic/deftastic](https://hub.docker.com/r/defcontastic/deftastic)
