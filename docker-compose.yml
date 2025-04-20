@@ -1,0 +1,13 @@
+version: "3.8"
+
+services:
+  meshtastic-mqtt-broker:
+    image: defcontastic/deftastic:latest
+    container_name: meshtastic-mqtt
+    ports:
+      - "8883:8883"
+    volumes:
+      - ./certificate.pfx:/app/certificate.pfx
+    restart: unless-stopped
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Production
