@@ -6,7 +6,8 @@ COPY Meshtastic.Mqtt.csproj ./
 RUN dotnet restore
 
 # Copy the rest of the code
-COPY . ./
+COPY . .
+RUN dotnet restore
 RUN dotnet publish -c Release -o /app
 
 # Build runtime image

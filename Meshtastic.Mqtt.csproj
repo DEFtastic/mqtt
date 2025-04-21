@@ -9,6 +9,7 @@
 
   <ItemGroup>
     <PackageReference Include="Meshtastic" Version="2.0.1" />
+    <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.3" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.2" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.2" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.2" />
@@ -25,13 +26,6 @@
     <None Update="certificate.pfx;cert.pem">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </None>
-  </ItemGroup>
-
-  <ItemGroup>
-    <Compile Include="Program.cs" />
-    <Compile Include="ClientDatabase.cs" />
-    <Compile Include="MqttServerManager.cs" />
-    <Compile Include="PacketHandler.cs" />
   </ItemGroup>
 
 </Project>
