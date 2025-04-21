@@ -1,8 +1,9 @@
 version: "3.8"
 
 services:
-  meshtastic-mqtt-broker:
-    image: defcontastic/deftastic:latest
+  meshtastic-mqtt:
+    build:
+      context: .
     container_name: meshtastic-mqtt
     ports:
       - "8883:8883"

@@ -5,6 +5,7 @@
     <TargetFramework>net9.0</TargetFramework>
     <ImplicitUsings>enable</ImplicitUsings>
     <Nullable>enable</Nullable>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems> <!-- ADDED -->
   </PropertyGroup>
 
   <ItemGroup>
@@ -12,14 +13,20 @@
     <PackageReference Include="Microsoft.Data.Sqlite" Version="8.0.3" />
     <PackageReference Include="Microsoft.Extensions.Hosting" Version="9.0.2" />
     <PackageReference Include="Microsoft.Extensions.Hosting.Abstractions" Version="9.0.2" />
-    <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.21.2" />
     <PackageReference Include="MQTTnet" Version="5.0.1.1416" />
-    <PackageReference Include="MQTTnet.Server" Version="5.0.1.1416" />
+    <PackageReference Include="MQTTnet.Server" Version="5.0.0.56" /> 
     <PackageReference Include="Newtonsoft.Json" Version="13.0.3" />
     <PackageReference Include="Serilog" Version="4.2.0" />
     <PackageReference Include="Serilog.Formatting.Compact" Version="3.0.0" />
     <PackageReference Include="Serilog.Sinks.Console" Version="6.0.0" />
     <PackageReference Include="Serilog.Sinks.File" Version="6.0.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="Program.cs" />
+    <Compile Include="ClientDatabase.cs" />
+    <Compile Include="MqttServerManager.cs" />
+    <Compile Include="PacketHandler.cs" />
   </ItemGroup>
 
   <ItemGroup>

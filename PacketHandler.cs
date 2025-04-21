@@ -1,4 +1,6 @@
 using MQTTnet.Server;
+using MQTTnet;
+using MQTTnet.Protocol;
 using Meshtastic;
 using Meshtastic.Crypto;
 using Meshtastic.Protobufs;
@@ -104,7 +106,7 @@ namespace Meshtastic.Mqtt
 
                 var nonce = new NonceGenerator(serviceEnvelope.Packet.From, serviceEnvelope.Packet.Id).Create();
                 var decrypted = PacketEncryption.TransformPacket(serviceEnvelope.Packet.Encrypted.ToByteArray(), nonce, Resources.DEFAULT_PSK);
-                var payload = Data.Parser.ParseFrom(decrypted);
+                var payload = Meshtastic.Protobufs.Data.Parser.ParseFrom(decrypted);
 
                 return payload.Portnum == PortNum.RoutingApp &&
                        payload.Payload.Length > 0 &&
@@ -116,7 +118,7 @@ namespace Meshtastic.Mqtt
             }
         }
 
-        private static void LogReceivedMessage(string topic, string clientId, Data? data)
+        private static void LogReceivedMessage(string topic, string clientId, Meshtastic.Protobufs.Data? data)
         {
             if (data?.Portnum == PortNum.TextMessageApp)
             {
@@ -130,11 +132,11 @@ namespace Meshtastic.Mqtt
             }
         }
 
-        private static Data? DecryptMeshPacket(ServiceEnvelope serviceEnvelope)
+        private static Meshtastic.Protobufs.Data? DecryptMeshPacket(ServiceEnvelope serviceEnvelope)
         {
             var nonce = new NonceGenerator(serviceEnvelope.Packet.From, serviceEnvelope.Packet.Id).Create();
             var decrypted = PacketEncryption.TransformPacket(serviceEnvelope.Packet.Encrypted.ToByteArray(), nonce, Resources.DEFAULT_PSK);
-            var payload = Data.Parser.ParseFrom(decrypted);
+            var payload = Meshtastic.Protobufs.Data.Parser.ParseFrom(decrypted);
 
             if (payload.Portnum > PortNum.UnknownApp && payload.Payload.Length > 0)
                 return payload;
