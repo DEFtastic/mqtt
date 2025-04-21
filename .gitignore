@@ -8,6 +8,7 @@
 ## Get latest from https://github.com/github/gitignore/blob/main/Dotnet.gitignore
 
 # Build results
+bin/
 [Dd]ebug/
 [Dd]ebugPublic/
 [Rr]elease/
@@ -53,3 +54,9 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 .DS_Store
+
+# IDE Folders
+.vscode/
+.idea/
+
+# (Leave cert.pem, key.pem, certificate.pfx tracked for now)

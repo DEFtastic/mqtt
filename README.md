@@ -70,6 +70,14 @@ docker-compose up -d
 
 ---
 
+## Development Notes
+-	The keys (cert.pem, key.pem) and certificate (certificate.pfx) files are included in this repository for development and testing purposes only.
+-	Do not use these certificates in production. Replace them with your own trusted certificates when deploying.
+-	Future versions may move certificate handling to external secrets or mounted volumes for better security.
+-	.gitignore is configured to exclude build artifacts (e.g., bin/, obj/) but not the certificate files at this time to ensure Docker builds work out of the box.
+
+---
+
 ## Ideas for Future Mesh Moderation
 
 - Rate-limiting duplicate packets
