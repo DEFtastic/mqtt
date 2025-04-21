@@ -20,6 +20,17 @@ It provides an MQTT broker specifically designed for Meshtastic mesh network mod
 
 ---
 
+## Code Structure
+
+The project has been modularized to improve maintainability and clarity. The main components are:
+
+- **Program.cs**: The entry point of the application, responsible for initializing and starting the MQTT broker.
+- **MqttServerManager.cs**: Manages the lifecycle and configuration of the MQTT server, including handling client connections and subscriptions.
+- **PacketHandler.cs**: Responsible for processing and validating incoming mesh packets, ensuring they meet the required criteria.
+- **ClientDatabase.cs**: Manages client information and access control, providing a database-like interface for client data.
+
+---
+
 ## Quick Start
 
 ### Docker (manual)
