@@ -1,4 +1,14 @@
-using MeshtasticMqtt;
+namespace MeshtasticMqtt;
+
+using Meshtastic;
+using Meshtastic.Protobufs;
+using Microsoft.Extensions.Hosting;
+using Microsoft.Extensions.DependencyInjection;
+using MQTTnet.Server;
+using Serilog;
+using System.Reflection;
+using System.Security.Cryptography.X509Certificates;
+using System.Security.Authentication;
 
 public class MqttServerManager : IHostedService
 {

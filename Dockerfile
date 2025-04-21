@@ -2,7 +2,7 @@ FROM mcr.microsoft.com/dotnet/sdk:9.0 AS build
 WORKDIR /src
 
 # ensure clean NuGet cache fetch
-RUN dotnet nuget add source https://api.nuget.org/v3/index.json
+# RUN dotnet nuget add source https://api.nuget.org/v3/index.json
 
 # Copy everything under /src
 COPY src/MeshtasticMqtt/ ./MeshtasticMqtt/
