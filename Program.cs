@@ -4,19 +4,42 @@ using Google.Protobuf;
 using Serilog;
 using MQTTnet.Protocol;
 using System.Runtime.Loader;
+using Microsoft.Data.Sqlite;
 using Microsoft.Extensions.DependencyInjection;
 using Microsoft.Extensions.Hosting;
 using Serilog.Formatting.Compact;
 using Meshtastic.Crypto;
 using Meshtastic;
+using System.IO;
 using System.Security.Authentication;
 using System.Security.Cryptography.X509Certificates;
 using System.Reflection;
 
 await RunMqttServer(args);
 
+void InitializeDatabase()
+{
+    if (!File.Exists("clients.db"))
+    {
+        using var connection = new SqliteConnection("Data Source=clients.db");
+        connection.Open();
+        using var command = connection.CreateCommand();
+        command.CommandText =
+        @"
+            CREATE TABLE Clients (
+                Id INTEGER PRIMARY KEY AUTOINCREMENT,
+                ClientId TEXT NOT NULL,
+                ConnectedAt TEXT NOT NULL
+            );
+        ";
+        command.ExecuteNonQuery();
+    }
+}
+
 async Task RunMqttServer(string[] args)
 {
+    InitializeDatabase();
+    
     Log.Logger = new LoggerConfiguration()
         .MinimumLevel.Debug()
         .WriteTo.Console(new RenderedCompactJsonFormatter())
@@ -136,6 +159,22 @@ Task HandleValidatingConnection(ValidatingConnectionEventArgs args)
 {
     // Add connection / authentication logic here if needed
     args.ReasonCode = MqttConnectReasonCode.Success;
+
+    Log.Logger.Information("New client connected: {@ClientId}", args.ClientId);
+
+    using var connection = new SqliteConnection("Data Source=clients.db");
+    connection.Open();
+
+    using var command = connection.CreateCommand();
+    command.CommandText =
+    @"
+        INSERT INTO Clients (ClientId, ConnectedAt)
+        VALUES ($clientId, $connectedAt);
+    ";
+    command.Parameters.AddWithValue("$clientId", args.ClientId);
+    command.Parameters.AddWithValue("$connectedAt", DateTime.UtcNow.ToString("o"));
+    command.ExecuteNonQuery();
+
     return Task.CompletedTask;
 }
 
