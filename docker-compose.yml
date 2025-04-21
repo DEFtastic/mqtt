@@ -9,6 +9,7 @@ services:
       - "8883:8883"
     volumes:
       - ./certificate.pfx:/app/certificate.pfx
+      - ./broker.db:/app/broker.db
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
