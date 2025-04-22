@@ -1,7 +1,6 @@
 services:
   meshtastic-mqtt:
-    build:
-      context: .
+    image: defcontastic/deftastic:latest
     container_name: meshtastic-mqtt
     ports:
       - "1883:1883"
