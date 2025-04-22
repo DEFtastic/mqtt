@@ -6,7 +6,8 @@ services:
       - "8883:8883"
     volumes:
       - ./data:/app/data
-      - /etc/letsencrypt/live/mqtt.deftastic.com:/app/certs:ro
+      - /etc/letsencrypt/live/mqtt.deftastic.com/fullchain.pem:/app/certs/fullchain.pem:ro
+      - /etc/letsencrypt/live/mqtt.deftastic.com/privkey.pem:/app/certs/privkey.pem:ro
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Production

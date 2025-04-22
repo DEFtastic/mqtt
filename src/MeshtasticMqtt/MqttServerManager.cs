@@ -45,11 +45,26 @@ public class MqttServerManager : IHostedService
 
     private MqttServerOptions BuildOptions()
     {
-        var certPath = Path.Combine(AppContext.BaseDirectory, "data", "cert.pem");
-        var keyPath = Path.Combine(AppContext.BaseDirectory, "data", "key.pem");
+        string certPath;
+        string keyPath;
+
+        var letsEncryptCert = "/app/certs/fullchain.pem";
+        var letsEncryptKey = "/app/certs/privkey.pem";
+
+        if (File.Exists(letsEncryptCert) && File.Exists(letsEncryptKey))
+        {
+            certPath = letsEncryptCert;
+            keyPath = letsEncryptKey;
+            Console.WriteLine("Using Let's Encrypt certificate from /app/certs");
+        }
+        else
+        {
+            certPath = Path.Combine(AppContext.BaseDirectory, "data", "cert.pem");
+            keyPath = Path.Combine(AppContext.BaseDirectory, "data", "key.pem");
+            Console.WriteLine("Using auto-generated certificate from /app/data");
+        }
 
         var cert = X509Certificate2.CreateFromPemFile(certPath, keyPath);
-
 
         return new MqttServerOptionsBuilder()
             .WithDefaultEndpoint()
