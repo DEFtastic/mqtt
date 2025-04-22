@@ -6,7 +6,6 @@ using Microsoft.Extensions.DependencyInjection;
 using Serilog;
 using Serilog.Events;
 
-
 public class Program
 {
     public static async Task Main(string[] args)
@@ -22,14 +21,22 @@ public class Program
         {
             Log.Information("Starting up");
 
-            await Host.CreateDefaultBuilder(args)
+            // ✨ Build manually instead of RunConsoleAsync
+            var host = Host.CreateDefaultBuilder(args)
                 .UseSerilog()
                 .ConfigureServices((hostContext, services) =>
                 {
                     services.AddHostedService<MqttServerManager>();
                     services.AddSingleton<ClientDatabase>();
                 })
-                .RunConsoleAsync();
+                .Build(); // ✨ Build it here
+
+            // ✨ Initialize the database BEFORE running
+            var clientDatabase = host.Services.GetRequiredService<ClientDatabase>();
+            clientDatabase.InitializeDatabase();
+
+            // ✨ Now run
+            await host.RunAsync();
         }
         catch (Exception ex)
         {
