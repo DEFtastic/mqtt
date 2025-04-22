@@ -16,7 +16,7 @@ FROM mcr.microsoft.com/dotnet/runtime:9.0
 WORKDIR /app
 COPY --from=build /app ./
 
-EXPOSE 1883 8883
+EXPOSE 8883
 
 # Add script that generates certs at container startup
 COPY entrypoint.sh /app/entrypoint.sh

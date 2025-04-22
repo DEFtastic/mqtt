@@ -3,10 +3,10 @@ services:
     build: .
     container_name: meshtastic-mqtt
     ports:
-      - "1883:1883"
       - "8883:8883"
     volumes:
       - ./data:/app/data
+      - /etc/letsencrypt/live/mqtt.deftastic.com:/app/certs:ro
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
