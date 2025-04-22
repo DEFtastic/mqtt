@@ -46,16 +46,14 @@ public class MqttServerManager : IHostedService
     {
         var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
 
-#pragma warning disable SYSLIB0057
-        var cert = new X509Certificate2(
-            Path.Combine(path, "certificate.pfx"),
-            "large4cats",
-            X509KeyStorageFlags.Exportable
-        );
-#pragma warning restore SYSLIB0057
+        var certPath = Path.Combine(path, "mqtt.crt");
+        var keyPath = Path.Combine(path, "mqtt.key");
+
+        var cert = X509Certificate2.CreateFromPemFile(certPath, keyPath);
+        cert = new X509Certificate2(cert.Export(X509ContentType.Pkcs12));
 
         return new MqttServerOptionsBuilder()
-            .WithDefaultEndpoint() 
+            .WithDefaultEndpoint()
             .WithDefaultEndpointPort(1883)
             .WithEncryptedEndpoint()
             .WithEncryptedEndpointPort(8883)

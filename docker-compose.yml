@@ -9,6 +9,8 @@ services:
     volumes:
       - ./data:/app/data
       - ./certificate.pfx:/app/certificate.pfx
+      - ./mqtt.crt:/app/mqtt.crt
+      - ./mqtt.key:/app/mqtt.key
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
