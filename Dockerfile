@@ -16,6 +16,10 @@ FROM mcr.microsoft.com/dotnet/runtime:9.0
 WORKDIR /app
 COPY --from=build /app ./
 
+# Copy cert files into the final container
+COPY cert.pem ./cert.pem
+COPY key.pem ./key.pem
+
 EXPOSE 1883 8883
 
 ENTRYPOINT ["dotnet", "Meshtastic.Mqtt.dll"]
