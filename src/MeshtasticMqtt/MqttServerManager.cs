@@ -25,12 +25,12 @@ public class MqttServerManager : IHostedService
     public async Task StartAsync(CancellationToken cancellationToken)
     {
         var factory = new MqttServerFactory();
-        _mqttServer = factory.CreateMqttServer(); 
+        var options = BuildOptions();
+        _mqttServer = factory.CreateMqttServer(options);
 
         ConfigureServer(_mqttServer);
 
-        var options = BuildOptions();
-        await _mqttServer.StartAsync(options);
+        await _mqttServer.StartAsync();
         Log.Information("MQTT server started successfully.");
     }
 
