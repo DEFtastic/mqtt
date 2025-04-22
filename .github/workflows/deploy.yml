@@ -34,6 +34,6 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
-            cd /path/to/mqtt
+            cd ~/mqtt
             docker-compose down
             docker-compose up -d
