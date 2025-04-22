@@ -19,15 +19,15 @@ public class MqttServerManager : IHostedService
     public MqttServerManager(ClientDatabase clientDatabase)
     {
         _clientDatabase = clientDatabase;
-        _packetHandler = new PacketHandler(clientDatabase); // <-- NEW
-
-        var factory = new MqttServerFactory();
-        var options = BuildOptions();
-        _mqttServer = factory.CreateMqttServer(options);
+        _packetHandler = new PacketHandler(clientDatabase);
     }
 
     public async Task StartAsync(CancellationToken cancellationToken)
     {
+        var factory = new MqttServerFactory();
+        var options = BuildOptions();
+        _mqttServer = factory.CreateMqttServer(options);
+
         ConfigureServer(_mqttServer);
         await _mqttServer.StartAsync();
         Log.Information("MQTT server started successfully.");
@@ -42,15 +42,14 @@ public class MqttServerManager : IHostedService
         }
     }
 
+
     private MqttServerOptions BuildOptions()
     {
-        var path = Path.GetDirectoryName(Assembly.GetExecutingAssembly().Location)!;
-
-        var certPath = Path.Combine(path, "mqtt.crt");
-        var keyPath = Path.Combine(path, "mqtt.key");
+        var certPath = Path.Combine(AppContext.BaseDirectory, "data", "cert.pem");
+        var keyPath = Path.Combine(AppContext.BaseDirectory, "data", "key.pem");
 
         var cert = X509Certificate2.CreateFromPemFile(certPath, keyPath);
-        cert = new X509Certificate2(cert.Export(X509ContentType.Pkcs12));
+
 
         return new MqttServerOptionsBuilder()
             .WithDefaultEndpoint()

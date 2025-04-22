@@ -18,4 +18,9 @@ COPY --from=build /app ./
 
 EXPOSE 1883 8883
 
-ENTRYPOINT ["dotnet", "Meshtastic.Mqtt.dll"]
+# Add script that generates certs at container startup
+COPY entrypoint.sh /app/entrypoint.sh
+RUN chmod +x /app/entrypoint.sh
+
+# Set entrypoint
+ENTRYPOINT ["/app/entrypoint.sh"]

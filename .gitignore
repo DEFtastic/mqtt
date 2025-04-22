@@ -59,4 +59,5 @@ nunit-*.xml
 .vscode/
 .idea/
 
-# (Leave cert.pem, key.pem, certificate.pfx tracked for now)
+/data/*
+!data/.gitkeep

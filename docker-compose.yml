@@ -1,15 +1,12 @@
 services:
   meshtastic-mqtt:
-    image: defcontastic/deftastic:latest
+    build: .
     container_name: meshtastic-mqtt
     ports:
       - "1883:1883"
       - "8883:8883"
     volumes:
       - ./data:/app/data
-      - ./certificate.pfx:/app/certificate.pfx
-      - ./mqtt.crt:/app/mqtt.crt
-      - ./mqtt.key:/app/mqtt.key
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
