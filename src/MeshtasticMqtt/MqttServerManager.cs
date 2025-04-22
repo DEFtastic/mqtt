@@ -55,7 +55,8 @@ public class MqttServerManager : IHostedService
 #pragma warning restore SYSLIB0057
 
         return new MqttServerOptionsBuilder()
-            .WithoutDefaultEndpoint()
+            .WithDefaultEndpoint() 
+            .WithDefaultEndpointPort(1883)
             .WithEncryptedEndpoint()
             .WithEncryptedEndpointPort(8883)
             .WithEncryptionCertificate(cert.Export(X509ContentType.Pfx))
