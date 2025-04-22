@@ -11,8 +11,7 @@ public class ClientDatabase
     {
         InitializeDatabase();
     }
-
-    private void InitializeDatabase()
+    public void InitializeDatabase()
     {
         // Ensure 'data' directory exists
         Directory.CreateDirectory("data");
