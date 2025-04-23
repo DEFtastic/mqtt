@@ -27,10 +27,16 @@ jobs:
           docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/meshtastic-mqtt .
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/meshtastic-mqtt
 
+      - name: Set up SSH key
+        run: |
+          mkdir -p ~/.ssh
+          echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
+          chmod 600 ~/.ssh/deploy_key
+
       - name: Test SSH Connection
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.HOST }} 'echo "SSH connection successful"'
-      
+          
       - name: SSH Deploy to Server
         uses: appleboy/ssh-action@v0.1.0
         with:
