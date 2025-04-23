@@ -79,6 +79,7 @@ public class PacketHandler
         catch (InvalidProtocolBufferException ex)
         {
             Log.Warning("Failed to decode protobuf packet: {Exception}. Blocking.", ex.Message);
+            Log.Warning("Payload hex: {PayloadHex}", BitConverter.ToString(args.ApplicationMessage.Payload.ToArray()));
             args.ProcessPublish = false;
         }
         catch (Exception ex)
