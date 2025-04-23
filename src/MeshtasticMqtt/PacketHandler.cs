@@ -36,6 +36,13 @@ public class PacketHandler
 
     public Task HandleInterceptingPublish(InterceptingPublishEventArgs args)
     {
+        // Skip JSON/plaintext MQTT publishes
+        if (!args.ApplicationMessage.Topic.Contains("/e/"))
+        {
+            args.ProcessPublish = true;
+            return Task.CompletedTask;
+        }
+
         var payloadBytes = args.ApplicationMessage.Payload.ToArray();
 
         try
