@@ -9,6 +9,7 @@ using Meshtastic.Protobufs;
 using MeshtasticMqtt;
 using Google.Protobuf;
 using Serilog;
+using System.Buffers;
 
 public class PacketHandler
 {
@@ -38,7 +39,7 @@ public class PacketHandler
         try
         {
             // Log payload in hex format for debugging purposes
-            if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug)) // Fixed LogLevel Debug
+            if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
             {
                 Log.Debug("Received payload (hex): {Payload}", BitConverter.ToString(args.ApplicationMessage.Payload));
             }
