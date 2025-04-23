@@ -40,11 +40,6 @@ public class PacketHandler
 
         try
         {
-            if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
-            {
-                Log.Debug("Received payload (hex): {Payload}", BitConverter.ToString(payloadBytes));
-            }
-
             if (payloadBytes.Length == 0)
             {
                 Log.Warning("Empty payload on topic {@Topic} from {@ClientId}", args.ApplicationMessage.Topic, args.ClientId);
