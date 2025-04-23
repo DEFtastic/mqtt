@@ -38,10 +38,9 @@ public class PacketHandler
     {
         try
         {
-            // Log payload in hex format for debugging purposes
             if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
             {
-                Log.Debug("Received payload (hex): {Payload}", BitConverter.ToString(args.ApplicationMessage.Payload));
+                Log.Debug("Received payload (hex): {Payload}", BitConverter.ToString(args.ApplicationMessage.Payload.ToArray()));
             }
 
             if (args.ApplicationMessage.Payload.Length == 0)
@@ -51,8 +50,8 @@ public class PacketHandler
                 return Task.CompletedTask;
             }
 
-            // Validate and process packet
-            var serviceEnvelope = ParseServiceEnvelope(args.ApplicationMessage.Payload);
+            var payloadBytes = args.ApplicationMessage.Payload.ToArray();
+            var serviceEnvelope = ParseServiceEnvelope(payloadBytes);
 
             if (serviceEnvelope == null || !IsValidServiceEnvelope(serviceEnvelope))
             {
@@ -60,7 +59,6 @@ public class PacketHandler
                 return Task.CompletedTask;
             }
 
-            // Handle routing ACK/NACK or decrypt the packet
             if (IsRoutingAck(serviceEnvelope))
             {
                 Log.Debug("Routing ACK/NACK packet confirmed. Allowing.");
@@ -143,12 +141,12 @@ public class PacketHandler
             if (serviceEnvelope.Packet == null) return false;
 
             var nonce = new NonceGenerator(serviceEnvelope.Packet.From, serviceEnvelope.Packet.Id).Create();
-            var decrypted = PacketEncryption.TransformPacket(serviceEnvelope.Packet.Encrypted.ToArray(), nonce, Resources.DEFAULT_PSK); // Fixed ReadOnlySequence to byte[]
+            var decrypted = PacketEncryption.TransformPacket(serviceEnvelope.Packet.Encrypted.ToArray(), nonce, Resources.DEFAULT_PSK);
             var payload = Meshtastic.Protobufs.Data.Parser.ParseFrom(decrypted);
 
             return payload.Portnum == PortNum.RoutingApp &&
-                    payload.Payload.Length > 0 &&
-                    payload.Payload.Length <= 10;
+                   payload.Payload.Length > 0 &&
+                   payload.Payload.Length <= 10;
         }
         catch (Exception ex)
         {
@@ -177,8 +175,9 @@ public class PacketHandler
         {
             Log.Information("Decrypting packet from {From}, ID: {Id}", serviceEnvelope.Packet.From, serviceEnvelope.Packet.Id);
 
+            var encryptedData = serviceEnvelope.Packet.Encrypted.ToByteArray();
             var nonce = new NonceGenerator(serviceEnvelope.Packet.From, serviceEnvelope.Packet.Id).Create();
-            var decrypted = PacketEncryption.TransformPacket(serviceEnvelope.Packet.Encrypted.ToArray(), nonce, Resources.DEFAULT_PSK); // Fixed ReadOnlySequence to byte[]
+            var decrypted = PacketEncryption.TransformPacket(encryptedData, nonce, Resources.DEFAULT_PSK);
 
             if (decrypted == null || decrypted.Length == 0)
             {
