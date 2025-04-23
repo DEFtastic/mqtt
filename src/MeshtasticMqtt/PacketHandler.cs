@@ -203,10 +203,7 @@ public class PacketHandler
                 return null;
             }
 
-            if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
-            {
-                Log.Debug("Decrypted data (first 100 bytes): {DecryptedData}", BitConverter.ToString(decrypted.Take(100).ToArray()));
-            }
+            Log.Information("Decrypted data (first 100 bytes): {DecryptedData}", BitConverter.ToString(decrypted.Take(100).ToArray()));
 
             var payload = Meshtastic.Protobufs.Data.Parser.ParseFrom(decrypted);
             if (payload.Portnum > PortNum.UnknownApp && payload.Payload.Length > 0)
