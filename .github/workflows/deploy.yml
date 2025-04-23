@@ -48,6 +48,7 @@ jobs:
             git reset --hard
             git clean -fd
             git pull origin master
+            rm -f docker-compose.override.yml  # Remove the override file used for local builds
             docker compose down
             docker image rm defcontastic/deftastic:latest || true
             docker pull defcontastic/deftastic:latest
