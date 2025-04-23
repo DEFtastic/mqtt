@@ -36,25 +36,28 @@ public class PacketHandler
 
     public Task HandleInterceptingPublish(InterceptingPublishEventArgs args)
     {
+        var payloadBytes = args.ApplicationMessage.Payload.ToArray();
+
         try
         {
             if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
             {
-                Log.Debug("Received payload (hex): {Payload}", BitConverter.ToString(args.ApplicationMessage.Payload.ToArray()));
+                Log.Debug("Received payload (hex): {Payload}", BitConverter.ToString(payloadBytes));
             }
 
-            if (args.ApplicationMessage.Payload.Length == 0)
+            if (payloadBytes.Length == 0)
             {
                 Log.Warning("Empty payload on topic {@Topic} from {@ClientId}", args.ApplicationMessage.Topic, args.ClientId);
                 args.ProcessPublish = false;
                 return Task.CompletedTask;
             }
 
-            var payloadBytes = args.ApplicationMessage.Payload.ToArray();
             var serviceEnvelope = ParseServiceEnvelope(payloadBytes);
 
             if (serviceEnvelope == null || !IsValidServiceEnvelope(serviceEnvelope))
             {
+                Log.Warning("Service envelope or packet is malformed. Blocking packet on topic {Topic} from {ClientId}", args.ApplicationMessage.Topic, args.ClientId);
+                Log.Warning("Payload hex (malformed envelope): {PayloadHex}", BitConverter.ToString(payloadBytes));
                 args.ProcessPublish = false;
                 return Task.CompletedTask;
             }
@@ -78,14 +81,15 @@ public class PacketHandler
         }
         catch (InvalidProtocolBufferException ex)
         {
-            Log.Warning("Failed to decode protobuf packet: {Exception}. Blocking.", ex.Message);
-            Log.Warning("Payload hex: {PayloadHex}", BitConverter.ToString(args.ApplicationMessage.Payload.ToArray()));
+            Log.Warning("Failed to decode protobuf packet: {Exception}. Blocking", ex.Message);
+            Log.Warning("Payload hex (decode failure): {PayloadHex}", BitConverter.ToString(payloadBytes));
             args.ProcessPublish = false;
         }
         catch (Exception ex)
         {
             Log.Error("Error processing packet on {@Topic} from {@ClientId}: {@Exception}",
                 args.ApplicationMessage.Topic, args.ClientId, ex.Message);
+            Log.Warning("Payload hex (general error): {PayloadHex}", BitConverter.ToString(payloadBytes));
             args.ProcessPublish = false;
         }
 
@@ -101,6 +105,7 @@ public class PacketHandler
         catch (Exception ex)
         {
             Log.Warning("Failed to parse service envelope: {Exception}", ex.Message);
+            Log.Warning("Payload hex (parse failure): {PayloadHex}", BitConverter.ToString(payload));
             return null;
         }
     }
