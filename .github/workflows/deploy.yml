@@ -19,13 +19,13 @@ jobs:
       - name: Log into DockerHub
         uses: docker/login-action@v2
         with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
+          username: ${{ secrets.DOCKERHUB_USERNAME }}  # defcontastic
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
       - name: Build and Push Docker Image
         run: |
-          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/meshtastic-mqtt .
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/meshtastic-mqtt
+          docker build -t defcontastic/deftastic:latest .
+          docker push defcontastic/deftastic:latest
 
       - name: Set up SSH key
         run: |
@@ -36,7 +36,7 @@ jobs:
       - name: Test SSH Connection
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.HOST }} 'echo "SSH connection successful"'
-          
+
       - name: SSH Deploy to Server
         uses: appleboy/ssh-action@v0.1.0
         with:
@@ -46,4 +46,6 @@ jobs:
           script: |
             cd ~/mqtt
             docker compose down
+            docker image rm defcontastic/deftastic:latest || true
+            docker pull defcontastic/deftastic:latest
             docker compose up -d
