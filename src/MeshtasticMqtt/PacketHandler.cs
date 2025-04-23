@@ -23,6 +23,8 @@ public class PacketHandler
     {
         try
         {
+            Log.Debug("Received payload (hex): {Payload}", BitConverter.ToString(args.ApplicationMessage.Payload));
+
             if (args.ApplicationMessage.Payload.Length == 0)
             {
                 Log.Warning("Received empty payload on topic {@Topic} from {@ClientId}", args.ApplicationMessage.Topic, args.ClientId);
@@ -158,6 +160,10 @@ public class PacketHandler
     {
         var nonce = new NonceGenerator(serviceEnvelope.Packet.From, serviceEnvelope.Packet.Id).Create();
         var decrypted = PacketEncryption.TransformPacket(serviceEnvelope.Packet.Encrypted.ToByteArray(), nonce, Resources.DEFAULT_PSK);
+
+        // Log the decrypted data to ensure decryption is happening
+        Log.Debug("Decrypted packet: {Decrypted}", BitConverter.ToString(decrypted));
+
         var payload = Meshtastic.Protobufs.Data.Parser.ParseFrom(decrypted);
 
         if (payload.Portnum > PortNum.UnknownApp && payload.Payload.Length > 0)
