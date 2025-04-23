@@ -47,37 +47,41 @@ public class PacketHandler
                 return Task.CompletedTask;
             }
 
+            var topic = args.ApplicationMessage.Topic;
+
+            if (topic.Contains("/json/"))
+            {
+                // Just log the message and allow it through
+                var jsonText = System.Text.Encoding.UTF8.GetString(payloadBytes);
+                Log.Information("Received JSON packet on topic {Topic} from {ClientId}: {Json}", topic, args.ClientId, jsonText);
+                args.ProcessPublish = true;
+                return Task.CompletedTask;
+            }
+
             var serviceEnvelope = ParseServiceEnvelope(payloadBytes);
 
-            if (serviceEnvelope != null && IsRoutingAck(serviceEnvelope))
+            if (serviceEnvelope == null || !IsValidServiceEnvelope(serviceEnvelope))
+            {
+                Log.Warning("Service envelope or packet is malformed. Blocking packet on topic {Topic} from {ClientId}", topic, args.ClientId);
+                args.ProcessPublish = false;
+                return Task.CompletedTask;
+            }
+
+            if (IsRoutingAck(serviceEnvelope))
             {
                 Log.Debug("Routing ACK/NACK packet confirmed. Allowing.");
                 args.ProcessPublish = true;
                 return Task.CompletedTask;
             }
 
-            if (serviceEnvelope == null)
-            {
-                Log.Warning("Failed to parse ServiceEnvelope. Blocking packet on topic {Topic} from {ClientId}", args.ApplicationMessage.Topic, args.ClientId);
-                args.ProcessPublish = false;
-                return Task.CompletedTask;
-            }
-
             var data = DecryptMeshPacket(serviceEnvelope);
-
-            if (data == null)
-            {
-                Log.Warning("Service envelope or packet could not be decrypted. Blocking packet on topic {Topic} from {ClientId}", args.ApplicationMessage.Topic, args.ClientId);
-                args.ProcessPublish = false;
-                return Task.CompletedTask;
-            }
 
             if (data?.Portnum == PortNum.TextMessageApp)
             {
                 _clientDatabase.InsertMessage(args.ClientId, data.Payload.ToStringUtf8());
             }
 
-            LogReceivedMessage(args.ApplicationMessage.Topic, args.ClientId, data);
+            LogReceivedMessage(topic, args.ClientId, data);
             args.ProcessPublish = true;
         }
         catch (InvalidProtocolBufferException ex)
