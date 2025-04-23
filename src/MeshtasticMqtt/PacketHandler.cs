@@ -57,7 +57,10 @@ public class PacketHandler
             if (serviceEnvelope == null || !IsValidServiceEnvelope(serviceEnvelope))
             {
                 Log.Warning("Service envelope or packet is malformed. Blocking packet on topic {Topic} from {ClientId}", args.ApplicationMessage.Topic, args.ClientId);
-                Log.Warning("Payload hex (malformed envelope): {PayloadHex}", BitConverter.ToString(payloadBytes));
+                if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+                {
+                    Log.Debug("Payload hex (malformed envelope): {PayloadHex}", BitConverter.ToString(payloadBytes));
+                }
                 args.ProcessPublish = false;
                 return Task.CompletedTask;
             }
@@ -82,14 +85,20 @@ public class PacketHandler
         catch (InvalidProtocolBufferException ex)
         {
             Log.Warning("Failed to decode protobuf packet: {Exception}. Blocking", ex.Message);
-            Log.Warning("Payload hex (decode failure): {PayloadHex}", BitConverter.ToString(payloadBytes));
+            if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+            {
+                Log.Debug("Payload hex (decode failure): {PayloadHex}", BitConverter.ToString(payloadBytes));
+            }
             args.ProcessPublish = false;
         }
         catch (Exception ex)
         {
             Log.Error("Error processing packet on {@Topic} from {@ClientId}: {@Exception}",
                 args.ApplicationMessage.Topic, args.ClientId, ex.Message);
-            Log.Warning("Payload hex (general error): {PayloadHex}", BitConverter.ToString(payloadBytes));
+            if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+            {
+                Log.Debug("Payload hex (general error): {PayloadHex}", BitConverter.ToString(payloadBytes));
+            }
             args.ProcessPublish = false;
         }
 
@@ -105,7 +114,10 @@ public class PacketHandler
         catch (Exception ex)
         {
             Log.Warning("Failed to parse service envelope: {Exception}", ex.Message);
-            Log.Warning("Payload hex (parse failure): {PayloadHex}", BitConverter.ToString(payload));
+            if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+            {
+                Log.Debug("Payload hex (parse failure): {PayloadHex}", BitConverter.ToString(payload));
+            }
             return null;
         }
     }
@@ -191,7 +203,10 @@ public class PacketHandler
                 return null;
             }
 
-            Log.Information("Decrypted data (first 100 bytes): {DecryptedData}", BitConverter.ToString(decrypted.Take(100).ToArray()));
+            if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug))
+            {
+                Log.Debug("Decrypted data (first 100 bytes): {DecryptedData}", BitConverter.ToString(decrypted.Take(100).ToArray()));
+            }
 
             var payload = Meshtastic.Protobufs.Data.Parser.ParseFrom(decrypted);
             if (payload.Portnum > PortNum.UnknownApp && payload.Payload.Length > 0)
