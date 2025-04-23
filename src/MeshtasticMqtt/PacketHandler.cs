@@ -51,7 +51,6 @@ public class PacketHandler
 
             if (topic.Contains("/json/"))
             {
-                // Just log the message and allow it through
                 var jsonText = System.Text.Encoding.UTF8.GetString(payloadBytes);
                 Log.Information("Received JSON packet on topic {Topic} from {ClientId}: {Json}", topic, args.ClientId, jsonText);
                 args.ProcessPublish = true;
@@ -110,6 +109,36 @@ public class PacketHandler
             Log.Warning("Failed to parse service envelope: {Exception}", ex.Message);
             return null;
         }
+    }
+
+    private static bool IsValidServiceEnvelope(ServiceEnvelope serviceEnvelope)
+    {
+        List<string> issues = new();
+
+        if (string.IsNullOrWhiteSpace(serviceEnvelope.ChannelId))
+        {
+            issues.Add("Invalid ChannelId");
+        }
+        if (string.IsNullOrWhiteSpace(serviceEnvelope.GatewayId))
+        {
+            issues.Add("Invalid GatewayId");
+        }
+        if (serviceEnvelope.Packet == null || serviceEnvelope.Packet.Id < 1)
+        {
+            issues.Add("Invalid Packet");
+        }
+        if (serviceEnvelope.Packet.Encrypted == null || serviceEnvelope.Packet.Encrypted.Length == 0)
+        {
+            issues.Add("Missing Encrypted data");
+        }
+
+        if (issues.Any())
+        {
+            Log.Warning("Service envelope validation failed: {Issues}", string.Join(", ", issues));
+            return false;
+        }
+
+        return true;
     }
 
     private static bool IsRoutingAck(ServiceEnvelope serviceEnvelope)
