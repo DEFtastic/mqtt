@@ -36,13 +36,6 @@ public class PacketHandler
 
     public Task HandleInterceptingPublish(InterceptingPublishEventArgs args)
     {
-        // Skip JSON/plaintext MQTT publishes
-        if (!args.ApplicationMessage.Topic.Contains("/e/"))
-        {
-            args.ProcessPublish = true;
-            return Task.CompletedTask;
-        }
-
         var payloadBytes = args.ApplicationMessage.Payload.ToArray();
 
         try
@@ -56,21 +49,28 @@ public class PacketHandler
 
             var serviceEnvelope = ParseServiceEnvelope(payloadBytes);
 
-            if (serviceEnvelope == null || !IsValidServiceEnvelope(serviceEnvelope))
-            {
-                Log.Warning("Service envelope or packet is malformed. Blocking packet on topic {Topic} from {ClientId}", args.ApplicationMessage.Topic, args.ClientId);
-                args.ProcessPublish = false;
-                return Task.CompletedTask;
-            }
-
-            if (IsRoutingAck(serviceEnvelope))
+            if (serviceEnvelope != null && IsRoutingAck(serviceEnvelope))
             {
                 Log.Debug("Routing ACK/NACK packet confirmed. Allowing.");
                 args.ProcessPublish = true;
                 return Task.CompletedTask;
             }
 
+            if (serviceEnvelope == null)
+            {
+                Log.Warning("Failed to parse ServiceEnvelope. Blocking packet on topic {Topic} from {ClientId}", args.ApplicationMessage.Topic, args.ClientId);
+                args.ProcessPublish = false;
+                return Task.CompletedTask;
+            }
+
             var data = DecryptMeshPacket(serviceEnvelope);
+
+            if (data == null)
+            {
+                Log.Warning("Service envelope or packet could not be decrypted. Blocking packet on topic {Topic} from {ClientId}", args.ApplicationMessage.Topic, args.ClientId);
+                args.ProcessPublish = false;
+                return Task.CompletedTask;
+            }
 
             if (data?.Portnum == PortNum.TextMessageApp)
             {
@@ -106,36 +106,6 @@ public class PacketHandler
             Log.Warning("Failed to parse service envelope: {Exception}", ex.Message);
             return null;
         }
-    }
-
-    private static bool IsValidServiceEnvelope(ServiceEnvelope serviceEnvelope)
-    {
-        List<string> issues = new List<string>();
-
-        if (string.IsNullOrWhiteSpace(serviceEnvelope.ChannelId))
-        {
-            issues.Add("Invalid ChannelId");
-        }
-        if (string.IsNullOrWhiteSpace(serviceEnvelope.GatewayId))
-        {
-            issues.Add("Invalid GatewayId");
-        }
-        if (serviceEnvelope.Packet == null || serviceEnvelope.Packet.Id < 1)
-        {
-            issues.Add("Invalid Packet");
-        }
-        if (serviceEnvelope.Packet?.Encrypted == null || serviceEnvelope.Packet.Encrypted.Length < 1)
-        {
-            issues.Add("Missing Encrypted data");
-        }
-
-        if (issues.Any())
-        {
-            Log.Warning("Service envelope validation failed: {Issues}", string.Join(", ", issues));
-            return false;
-        }
-
-        return true;
     }
 
     private static bool IsRoutingAck(ServiceEnvelope serviceEnvelope)
@@ -177,7 +147,8 @@ public class PacketHandler
     {
         try
         {
-            Log.Information("Decrypting packet from {From}, ID: {Id}", serviceEnvelope.Packet.From, serviceEnvelope.Packet.Id);
+            if (serviceEnvelope.Packet?.Encrypted == null || serviceEnvelope.Packet.Encrypted.Length == 0)
+                return null;
 
             var encryptedData = serviceEnvelope.Packet.Encrypted.ToByteArray();
             var nonce = new NonceGenerator(serviceEnvelope.Packet.From, serviceEnvelope.Packet.Id).Create();
@@ -185,19 +156,16 @@ public class PacketHandler
 
             if (decrypted == null || decrypted.Length == 0)
             {
-                Log.Warning("Decryption failed: empty data for packet ID: {Id}", serviceEnvelope.Packet.Id);
                 return null;
             }
 
             var payload = Meshtastic.Protobufs.Data.Parser.ParseFrom(decrypted);
             if (payload.Portnum > PortNum.UnknownApp && payload.Payload.Length > 0)
                 return payload;
-
-            Log.Warning("Decrypted payload does not contain valid data.");
         }
         catch (Exception ex)
         {
-            Log.Error("Error while decrypting packet. Exception: {Exception}, Stack Trace: {StackTrace}", ex.Message, ex.StackTrace);
+            Log.Error("Error while decrypting packet. Exception: {Exception}", ex.Message);
         }
 
         return null;
