@@ -45,5 +45,5 @@ jobs:
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
             cd ~/mqtt
-            docker-compose down
-            docker-compose up -d
+            docker compose down
+            docker compose up -d
