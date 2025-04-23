@@ -37,7 +37,8 @@ public class PacketHandler
     {
         try
         {
-            if (Log.IsEnabled(LogLevel.Debug))
+            // Log payload in hex format for debugging purposes
+            if (Log.IsEnabled(Serilog.Events.LogEventLevel.Debug)) // Fixed LogLevel Debug
             {
                 Log.Debug("Received payload (hex): {Payload}", BitConverter.ToString(args.ApplicationMessage.Payload));
             }
@@ -49,6 +50,7 @@ public class PacketHandler
                 return Task.CompletedTask;
             }
 
+            // Validate and process packet
             var serviceEnvelope = ParseServiceEnvelope(args.ApplicationMessage.Payload);
 
             if (serviceEnvelope == null || !IsValidServiceEnvelope(serviceEnvelope))
@@ -57,6 +59,7 @@ public class PacketHandler
                 return Task.CompletedTask;
             }
 
+            // Handle routing ACK/NACK or decrypt the packet
             if (IsRoutingAck(serviceEnvelope))
             {
                 Log.Debug("Routing ACK/NACK packet confirmed. Allowing.");
@@ -139,7 +142,7 @@ public class PacketHandler
             if (serviceEnvelope.Packet == null) return false;
 
             var nonce = new NonceGenerator(serviceEnvelope.Packet.From, serviceEnvelope.Packet.Id).Create();
-            var decrypted = PacketEncryption.TransformPacket(serviceEnvelope.Packet.Encrypted.ToByteArray(), nonce, Resources.DEFAULT_PSK);
+            var decrypted = PacketEncryption.TransformPacket(serviceEnvelope.Packet.Encrypted.ToArray(), nonce, Resources.DEFAULT_PSK); // Fixed ReadOnlySequence to byte[]
             var payload = Meshtastic.Protobufs.Data.Parser.ParseFrom(decrypted);
 
             return payload.Portnum == PortNum.RoutingApp &&
@@ -174,7 +177,7 @@ public class PacketHandler
             Log.Information("Decrypting packet from {From}, ID: {Id}", serviceEnvelope.Packet.From, serviceEnvelope.Packet.Id);
 
             var nonce = new NonceGenerator(serviceEnvelope.Packet.From, serviceEnvelope.Packet.Id).Create();
-            var decrypted = PacketEncryption.TransformPacket(serviceEnvelope.Packet.Encrypted.ToByteArray(), nonce, Resources.DEFAULT_PSK);
+            var decrypted = PacketEncryption.TransformPacket(serviceEnvelope.Packet.Encrypted.ToArray(), nonce, Resources.DEFAULT_PSK); // Fixed ReadOnlySequence to byte[]
 
             if (decrypted == null || decrypted.Length == 0)
             {
