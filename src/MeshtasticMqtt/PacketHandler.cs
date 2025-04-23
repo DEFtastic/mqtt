@@ -19,34 +19,49 @@ public class PacketHandler
         _clientDatabase = clientDatabase;
     }
 
-    public async Task HandleInterceptingPublish(InterceptingPublishEventArgs args)
+    public Task HandleInterceptingSubscription(InterceptingSubscriptionEventArgs args)
+    {
+        args.ProcessSubscription = true;
+        return Task.CompletedTask;
+    }
+
+    public Task HandleValidatingConnection(ValidatingConnectionEventArgs args)
+    {
+        args.ReasonCode = MqttConnectReasonCode.Success;
+        Log.Information("New client connected: {@ClientId}", args.ClientId);
+        _clientDatabase.InsertClient(args.ClientId);
+        return Task.CompletedTask;
+    }
+
+    public Task HandleInterceptingPublish(InterceptingPublishEventArgs args)
     {
         try
         {
-            Log.Debug("Received payload (hex): {Payload}", BitConverter.ToString(args.ApplicationMessage.Payload));
+            if (Log.IsEnabled(LogLevel.Debug))
+            {
+                Log.Debug("Received payload (hex): {Payload}", BitConverter.ToString(args.ApplicationMessage.Payload));
+            }
 
             if (args.ApplicationMessage.Payload.Length == 0)
             {
-                Log.Warning("Received empty payload on topic {@Topic} from {@ClientId}", args.ApplicationMessage.Topic, args.ClientId);
+                Log.Warning("Empty payload on topic {@Topic} from {@ClientId}", args.ApplicationMessage.Topic, args.ClientId);
                 args.ProcessPublish = false;
-                return;
+                return Task.CompletedTask;
             }
 
-            var serviceEnvelope = ServiceEnvelope.Parser.ParseFrom(args.ApplicationMessage.Payload);
+            var serviceEnvelope = ParseServiceEnvelope(args.ApplicationMessage.Payload);
+
+            if (serviceEnvelope == null || !IsValidServiceEnvelope(serviceEnvelope))
+            {
+                args.ProcessPublish = false;
+                return Task.CompletedTask;
+            }
 
             if (IsRoutingAck(serviceEnvelope))
             {
-                Log.Debug("Confirmed routing ACK/NACK packet. Allowing through.");
+                Log.Debug("Routing ACK/NACK packet confirmed. Allowing.");
                 args.ProcessPublish = true;
-                return;
-            }
-
-            if (!IsValidServiceEnvelope(serviceEnvelope))
-            {
-                Log.Warning("Service envelope or packet is malformed. Blocking packet on topic {@Topic} from {@ClientId}",
-                    args.ApplicationMessage.Topic, args.ClientId);
-                args.ProcessPublish = false;
-                return;
+                return Task.CompletedTask;
             }
 
             var data = DecryptMeshPacket(serviceEnvelope);
@@ -59,74 +74,69 @@ public class PacketHandler
             LogReceivedMessage(args.ApplicationMessage.Topic, args.ClientId, data);
             args.ProcessPublish = true;
         }
-        catch (InvalidProtocolBufferException)
+        catch (InvalidProtocolBufferException ex)
         {
-            Log.Warning("Failed to decode presumed protobuf packet. Blocking");
+            Log.Warning("Failed to decode protobuf packet: {Exception}. Blocking.", ex.Message);
             args.ProcessPublish = false;
         }
         catch (Exception ex)
         {
-            Log.Error("Exception occurred while processing packet on {@Topic} from {@ClientId}: {@Exception}",
+            Log.Error("Error processing packet on {@Topic} from {@ClientId}: {@Exception}",
                 args.ApplicationMessage.Topic, args.ClientId, ex.Message);
             args.ProcessPublish = false;
         }
-    }
 
-    public Task HandleInterceptingSubscription(InterceptingSubscriptionEventArgs args)
-    {
-        args.ProcessSubscription = true;
         return Task.CompletedTask;
     }
 
-    public Task HandleValidatingConnection(ValidatingConnectionEventArgs args)
+    private ServiceEnvelope? ParseServiceEnvelope(byte[] payload)
     {
-        args.ReasonCode = MqttConnectReasonCode.Success;
-        Log.Information("New client connected: {@ClientId}", args.ClientId);
-
-        _clientDatabase.InsertClient(args.ClientId);
-
-        return Task.CompletedTask;
+        try
+        {
+            return ServiceEnvelope.Parser.ParseFrom(payload);
+        }
+        catch (Exception ex)
+        {
+            Log.Warning("Failed to parse service envelope: {Exception}", ex.Message);
+            return null;
+        }
     }
 
     private static bool IsValidServiceEnvelope(ServiceEnvelope serviceEnvelope)
     {
-        bool valid = true;
+        List<string> issues = new List<string>();
 
         if (string.IsNullOrWhiteSpace(serviceEnvelope.ChannelId))
         {
-            Log.Warning("Missing or invalid ChannelId in ServiceEnvelope");
-            valid = false;
+            issues.Add("Invalid ChannelId");
         }
         if (string.IsNullOrWhiteSpace(serviceEnvelope.GatewayId))
         {
-            Log.Warning("Missing or invalid GatewayId in ServiceEnvelope");
-            valid = false;
+            issues.Add("Invalid GatewayId");
         }
         if (serviceEnvelope.Packet == null || serviceEnvelope.Packet.Id < 1)
         {
-            Log.Warning("Missing or invalid Packet in ServiceEnvelope");
-            valid = false;
+            issues.Add("Invalid Packet");
         }
-        if (serviceEnvelope.Packet.Encrypted == null || serviceEnvelope.Packet.Encrypted.Length < 1)
+        if (serviceEnvelope.Packet?.Encrypted == null || serviceEnvelope.Packet.Encrypted.Length < 1)
         {
-            Log.Warning("Missing or invalid Encrypted data in ServiceEnvelope");
-            valid = false;
-        }
-        if (serviceEnvelope.Packet.Decoded != null)
-        {
-            Log.Warning("Unexpected Decoded data in ServiceEnvelope");
-            valid = false;
+            issues.Add("Missing Encrypted data");
         }
 
-        return valid;
+        if (issues.Any())
+        {
+            Log.Warning("Service envelope validation failed: {Issues}", string.Join(", ", issues));
+            return false;
+        }
+
+        return true;
     }
 
     private static bool IsRoutingAck(ServiceEnvelope serviceEnvelope)
     {
         try
         {
-            if (serviceEnvelope.Packet == null)
-                return false;
+            if (serviceEnvelope.Packet == null) return false;
 
             var nonce = new NonceGenerator(serviceEnvelope.Packet.From, serviceEnvelope.Packet.Id).Create();
             var decrypted = PacketEncryption.TransformPacket(serviceEnvelope.Packet.Encrypted.ToByteArray(), nonce, Resources.DEFAULT_PSK);
@@ -136,8 +146,9 @@ public class PacketHandler
                     payload.Payload.Length > 0 &&
                     payload.Payload.Length <= 10;
         }
-        catch
+        catch (Exception ex)
         {
+            Log.Warning("Error checking Routing ACK: {Exception}", ex.Message);
             return false;
         }
     }
@@ -158,18 +169,32 @@ public class PacketHandler
 
     private static Meshtastic.Protobufs.Data? DecryptMeshPacket(ServiceEnvelope serviceEnvelope)
     {
-        var nonce = new NonceGenerator(serviceEnvelope.Packet.From, serviceEnvelope.Packet.Id).Create();
-        var decrypted = PacketEncryption.TransformPacket(serviceEnvelope.Packet.Encrypted.ToByteArray(), nonce, Resources.DEFAULT_PSK);
+        try
+        {
+            Log.Information("Decrypting packet from {From}, ID: {Id}", serviceEnvelope.Packet.From, serviceEnvelope.Packet.Id);
 
-        // Log the decrypted data to ensure decryption is happening
-        Log.Debug("Decrypted packet: {Decrypted}", BitConverter.ToString(decrypted));
+            var nonce = new NonceGenerator(serviceEnvelope.Packet.From, serviceEnvelope.Packet.Id).Create();
+            var decrypted = PacketEncryption.TransformPacket(serviceEnvelope.Packet.Encrypted.ToByteArray(), nonce, Resources.DEFAULT_PSK);
 
-        var payload = Meshtastic.Protobufs.Data.Parser.ParseFrom(decrypted);
+            if (decrypted == null || decrypted.Length == 0)
+            {
+                Log.Warning("Decryption failed: empty data for packet ID: {Id}", serviceEnvelope.Packet.Id);
+                return null;
+            }
 
-        if (payload.Portnum > PortNum.UnknownApp && payload.Payload.Length > 0)
-            return payload;
+            Log.Information("Decrypted data (first 100 bytes): {DecryptedData}", BitConverter.ToString(decrypted.Take(100).ToArray()));
+
+            var payload = Meshtastic.Protobufs.Data.Parser.ParseFrom(decrypted);
+            if (payload.Portnum > PortNum.UnknownApp && payload.Payload.Length > 0)
+                return payload;
+
+            Log.Warning("Decrypted payload does not contain valid data.");
+        }
+        catch (Exception ex)
+        {
+            Log.Error("Error while decrypting packet. Exception: {Exception}, Stack Trace: {StackTrace}", ex.Message, ex.StackTrace);
+        }
 
         return null;
     }
 }
-
