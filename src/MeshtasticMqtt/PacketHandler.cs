@@ -88,14 +88,35 @@ public class PacketHandler
 
     private static bool IsValidServiceEnvelope(ServiceEnvelope serviceEnvelope)
     {
-        return !(string.IsNullOrWhiteSpace(serviceEnvelope.ChannelId) ||
-                    string.IsNullOrWhiteSpace(serviceEnvelope.GatewayId) ||
-                    serviceEnvelope.Packet == null ||
-                    serviceEnvelope.Packet.Id < 1 ||
-                    serviceEnvelope.Packet.From < 1 ||
-                    serviceEnvelope.Packet.Encrypted == null ||
-                    serviceEnvelope.Packet.Encrypted.Length < 1 ||
-                    serviceEnvelope.Packet.Decoded != null);
+        bool valid = true;
+
+        if (string.IsNullOrWhiteSpace(serviceEnvelope.ChannelId))
+        {
+            Log.Warning("Missing or invalid ChannelId in ServiceEnvelope");
+            valid = false;
+        }
+        if (string.IsNullOrWhiteSpace(serviceEnvelope.GatewayId))
+        {
+            Log.Warning("Missing or invalid GatewayId in ServiceEnvelope");
+            valid = false;
+        }
+        if (serviceEnvelope.Packet == null || serviceEnvelope.Packet.Id < 1)
+        {
+            Log.Warning("Missing or invalid Packet in ServiceEnvelope");
+            valid = false;
+        }
+        if (serviceEnvelope.Packet.Encrypted == null || serviceEnvelope.Packet.Encrypted.Length < 1)
+        {
+            Log.Warning("Missing or invalid Encrypted data in ServiceEnvelope");
+            valid = false;
+        }
+        if (serviceEnvelope.Packet.Decoded != null)
+        {
+            Log.Warning("Unexpected Decoded data in ServiceEnvelope");
+            valid = false;
+        }
+
+        return valid;
     }
 
     private static bool IsRoutingAck(ServiceEnvelope serviceEnvelope)
