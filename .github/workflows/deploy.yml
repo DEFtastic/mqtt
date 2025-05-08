@@ -4,6 +4,9 @@ on:
   push:
     branches:
       - master  # Trigger deploy on push to master
+  pull_request:
+    branches:
+      - master  # Trigger on PRs to master
 
 jobs:
   build:
@@ -38,16 +41,19 @@ jobs:
           docker push defcontastic/deftastic-dashboard:latest
 
       - name: Set up SSH key
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           mkdir -p ~/.ssh
           echo "${{ secrets.DEPLOY_SSH_KEY }}" > ~/.ssh/deploy_key
           chmod 600 ~/.ssh/deploy_key
 
       - name: Test SSH Connection
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         run: |
           ssh -i ~/.ssh/deploy_key -o StrictHostKeyChecking=no ${{ secrets.SSH_USERNAME }}@${{ secrets.HOST }} 'echo "SSH connection successful"'
 
       - name: SSH Deploy to Server
+        if: github.event_name == 'push' && github.ref == 'refs/heads/master'
         uses: appleboy/ssh-action@v0.1.0
         with:
           host: ${{ secrets.HOST }}
