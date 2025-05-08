@@ -13,3 +13,26 @@ services:
     restart: unless-stopped
     environment:
       - ASPNETCORE_ENVIRONMENT=Production
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8883/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+  dashboard:
+    image: defcontastic/deftastic-dashboard:latest
+    container_name: deftastic-dashboard
+    ports:
+      - "80:80"
+      - "443:443"
+    volumes:
+      - /etc/letsencrypt/live/dashboard.deftastic.com/fullchain.pem:/etc/caddy/cert.pem:ro
+      - /etc/letsencrypt/live/dashboard.deftastic.com/privkey.pem:/etc/caddy/key.pem:ro
+    restart: unless-stopped
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost/health"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s

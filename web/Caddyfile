@@ -1,0 +1,13 @@
+dashboard.deftastic.com {
+    root * /usr/share/caddy
+    encode gzip
+    file_server
+    try_files {path} /index.html
+
+    @health {
+        path /health
+    }
+    handle @health {
+        respond 200
+    }
+} 

@@ -22,10 +22,20 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Build and Push Docker Image
+      - name: Build and Push MQTT Broker
         run: |
+          echo "Building MQTT Broker image..."
           docker build -t defcontastic/deftastic:latest .
+          echo "Pushing MQTT Broker image..."
           docker push defcontastic/deftastic:latest
+
+      - name: Build and Push Dashboard
+        run: |
+          echo "Building Dashboard image..."
+          cd web
+          docker build -t defcontastic/deftastic-dashboard:latest .
+          echo "Pushing Dashboard image..."
+          docker push defcontastic/deftastic-dashboard:latest
 
       - name: Set up SSH key
         run: |
@@ -44,12 +54,25 @@ jobs:
           username: ${{ secrets.SSH_USERNAME }}
           key: ${{ secrets.DEPLOY_SSH_KEY }}
           script: |
+            echo "Starting deployment..."
             cd ~/mqtt
+            echo "Resetting git state..."
             git reset --hard
             git clean -fd
+            echo "Pulling latest changes..."
             git pull origin master
-            rm -f docker-compose.override.yml  # Remove the override file used for local builds
+            echo "Removing override file..."
+            rm -f docker-compose.override.yml
+            echo "Stopping containers..."
             docker compose down
-            docker image rm defcontastic/deftastic:latest || true
+            echo "Removing old images..."
+            docker image rm defcontastic/deftastic:latest defcontastic/deftastic-dashboard:latest || true
+            echo "Pulling new images..."
             docker pull defcontastic/deftastic:latest
+            docker pull defcontastic/deftastic-dashboard:latest
+            echo "Starting services..."
             docker compose up -d
+            echo "Checking service health..."
+            sleep 10
+            docker compose ps
+            echo "Deployment complete!"
